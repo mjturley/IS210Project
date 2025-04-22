@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaky Snake Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #cbe7f9;
+        }
+        header {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+        .instructions {
+            font-size: 16px;
+            margin-bottom: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+        canvas {
+            border: 1px solid #000;
+            background-color: #fff;
+        }
+        #highscore {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        footer{
+            height: 15px;
+        font-size: 12px;
+        Width: 100%;
+        padding-top: 15px;
+        color: white;
+        bottom: 0px;
+        position: fixed;
+        display:flex;
+        justify-content: center;
+        align-items:center;
+        height: 5vh;
+        }
+
+        footer a{
+            float: left;
+            color: black;
+            text-decoration:none;
+            font-weight: lighter;
+            padding: 10px 13px;
+            padding-bottom: 0px;
+        }
+
+    </style>
+</head>
+<body>
+    <header>Sneaky Snake Game</header>
+    <div class="instructions">
+        <p><strong>How to Play:</strong></p>
+        <ul>
+            <li>Use the arrow keys (<strong>Up, Down, Left, Right</strong>) to control the snake.</li>
+            <li>Try to eat the red food pieces to grow your snake and earn points.</li>
+            <li>If you run into the walls or the snake itself, the game will end.</li>
+            <li>Your high score will be saved and displayed below the game area!</li>
+            <li>Press any arrow key to start the game!</li>
+        </ul>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="highscore">High Score: 0</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gridSize = 20;
+        const canvasSize = 400;
+        let snake = [{ x: 160, y: 160 }];
+        let snakeDirection = "RIGHT";
+        let food = generateFood();
+        let gameInterval;
+        let gameStarted = false;
+        let score = 0;
+        let highScore = localStorage.getItem("highScore") || 0;
+        let snakeColor = getRandomColor();
+        let currentInsult = "";
+
+        const insults = [
+            "Wow, you're really bad at this.",
+            "Is that all you've got?",
+            "Even a turtle could do better.",
+            "Snake is disappointed in you.",
+            "That was... tragic."
+        ];
+
+        function startGame() {
+            if (!gameStarted) {
+                gameStarted = true;
+                score = 0;
+                snakeColor = getRandomColor();
+                currentInsult = "";
+                gameLoop();
+            }
+        }
+
+        function gameLoop() {
+            moveSnake();
+            if (checkCollision()) {
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem("highScore", highScore);
+                }
+                currentInsult = insults[Math.floor(Math.random() * insults.length)];
+                drawGame(); // 👈 Show insult before reset
+                alert("Game Over!");
+                resetGame();
+                return;
+            }
+            if (eatFood()) {
+                score += 10;
+                snake.push({});
+                food = generateFood();
+            }
+            drawGame();
+            gameInterval = setTimeout(gameLoop, 100);
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawSnake();
+            drawFood();
+            if (currentInsult) {
+                ctx.fillStyle = "crimson";
+                ctx.font = "bold 18px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(currentInsult, canvas.width / 2, canvas.height / 2);
+            }
+            document.getElementById("highscore").textContent = `High Score: ${highScore}`;
+        }
+
+        function drawSnake() {
+            snake.forEach((segment, index) => {
+                ctx.fillStyle = index === 0 ? snakeColor : "dark" + snakeColor;
+                ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, gridSize, gridSize);
+        }
+
+        function moveSnake() {
+            let head = { ...snake[0] };
+
+            switch (snakeDirection) {
+                case "UP":
+                    head.y -= gridSize;
+                    break;
+                case "DOWN":
+                    head.y += gridSize;
+                    break;
+                case "LEFT":
+                    head.x -= gridSize;
+                    break;
+                case "RIGHT":
+                    head.x += gridSize;
+                    break;
+            }
+
+            snake.unshift(head);
+            snake.pop();
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+            if (head.x < 0 || head.x >= canvasSize || head.y < 0 || head.y >= canvasSize) {
+                return true;
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function eatFood() {
+            const head = snake[0];
+            return head.x === food.x && head.y === food.y;
+        }
+
+        function generateFood() {
+            let foodX = Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize;
+            let foodY = Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize;
+            return { x: foodX, y: foodY };
+        }
+
+        function getRandomColor() {
+            const colors = ["red", "green", "blue", "purple", "orange", "yellow"];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function resetGame() {
+            snake = [{ x: 160, y: 160 }];
+            snakeDirection = "RIGHT";
+            food = generateFood();
+            gameStarted = false;
+            currentInsult = "";
+        }
+
+        window.addEventListener("keydown", (e) => {
+            if (!gameStarted) {
+                startGame();
+            }
+            if (e.key === "ArrowUp" && snakeDirection !== "DOWN") {
+                snakeDirection = "UP";
+            }
+            if (e.key === "ArrowDown" && snakeDirection !== "UP") {
+                snakeDirection = "DOWN";
+            }
+            if (e.key === "ArrowLeft" && snakeDirection !== "RIGHT") {
+                snakeDirection = "LEFT";
+            }
+            if (e.key === "ArrowRight" && snakeDirection !== "LEFT") {
+                snakeDirection = "RIGHT";
+            }
+        });
+    </script>
+    <br>
+    <footer>
+        <a href="scratch.html">From Scratch Page</href>
+        <a href="webapp.html">Sneaky Snake Game</a>
+        <a href="index.html">Resume Home Page</a>
+    </footer>
+</body>
+</html>
